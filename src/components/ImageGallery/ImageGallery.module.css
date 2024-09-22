@@ -1,0 +1,13 @@
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px; /* Отступы между элементами */
+  padding: 0;
+  list-style-type: none; /* Убираем стили списка */
+}
+
+.listItem {
+  flex-basis: calc(20% - 10px); /* Каждая картинка занимает 1/5 ширины контейнера */
+  margin-bottom: 10px; /* Отступ снизу между рядами */
+}

@@ -1,35 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import { fetchPhotosApi } from "./components/services/photos-api";
+import SearchBar from "./components/SearchBar/SearchBar";
+import ImageGallery from "./components/ImageGallery/ImageGallery";
+import Loader from "./components/Loader/Loader";
+import ErrorMessage from "./components/ErrorMessage/ErrorMessage";
+import LoadMoreBtn from "./components/LoadMoreBtn/LoadMoreBtn";
+import ImageModal from "./components/ImageModal/ImageModal";
+import { imageItem, Photo } from "./components/types";
+
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [photos, setPhotos] = useState<imageItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<null | string>(null);
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [totalPage, setTotalPage] = useState<number>(0);
+  const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
+  const [onPhoto, setOnPhoto] = useState<Photo>({ url: "", alt: "" });
+
+  const openModal = () => {
+    setIsOpenModal(true);
+  };
+
+  const closeModal = () => {
+    setIsOpenModal(false);
+  };
+
+  useEffect(() => {
+    if (searchValue.trim() === "") return;
+    const fetchPhotosBySearchValue = async (): Promise<void> => {
+      try {
+        setLoading(true);
+        const data = await fetchPhotosApi(searchValue, pageNumber);
+
+        setPhotos((prev) => [...prev, ...data.results]);
+        setTotalPage(data.total_pages);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          setError(error.message);
+        } else {
+          console.log("Unknown error type");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPhotosBySearchValue();
+  }, [searchValue, pageNumber]);
+
+  const onSubmit = (searchTerm: string): void => {
+    setPhotos([]);
+    setSearchValue(searchTerm);
+    setPageNumber(1);
+  };
+  const onLoadMore = (): void => {
+    setPageNumber((pageNumber) => pageNumber + 1);
+  };
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <SearchBar onSubmit={onSubmit} />
+      <ImageModal
+        isOpenModal={isOpenModal}
+        closeModal={closeModal}
+        onPhoto={onPhoto}
+      />
+      {loading && <Loader />}
+      {error !== null && <ErrorMessage errorMessage={error} />}
+      {photos.length > 0 && (
+        <ImageGallery
+          photos={photos}
+          openModal={openModal}
+          setOnPhoto={setOnPhoto}
+        />
+      )}
+      {pageNumber < totalPage && <LoadMoreBtn onLoadMore={onLoadMore} />}
     </>
-  )
+  );
 }
 
-export default App
+export default App;
